@@ -1,0 +1,39 @@
+# Virtual environments
+env1/
+.venv/
+venv/
+uv/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+
+# Datasets (large, and not yours to commit)
+data/
+malimg_paper_dataset*/
+
+# Model weights and checkpoints (often hundreds of MB+)
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+
+# Secrets
+.env
+*.env
+
+# Weights & Biases / run outputs / logs
+wandb/
+runs/
+outputs/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS and editor cruft
+.DS_Store
+Thumbs.db
+.idea/
