@@ -1,6 +1,6 @@
 import torch, numpy
 import random, faiss
-
+from statistics import mean
 
 
 def sample_eps(emb_model, n=5, k=1):
@@ -32,24 +32,43 @@ def randimg(family, k=1):
 
     return support, query
 
+
+
+
 emb_model = torch.load('malimg_embeddings.pt')
 
 
-labels, vecs = [],[]
 
-for x,y in emb_model.items():
-    for z in y:
-        labels.append(x)
-        vecs.append(z)
+accuracy = []
+for i in range(1000):
+    support_set, sup_labels, query_set, qry_labels = sample_eps(emb_model, k = 1)
+
+    index = faiss.IndexFlatIP(2048)
+    index.add(support_set.to(torch.float32).numpy())
+
+    D, I = index.search(query_set.to(torch.float32).numpy(), k=10)    #A stack-of-one-row is still 2D; a row's contents is 1D. Hence [0:1] works but [0] doesnt. FAISS never sees labels
+
+    predictions = []
+
+    for row in range(len(I)):
+        scores_by_family = {}
+        for j in range(len(I[row])):
+            pos = I[row][j]
+            if pos == -1:
+                continue
+            family = sup_labels[pos]
+            scores_by_family[family] = scores_by_family.get(family, 0.0) + D[row][j]
+
+        pred = max(scores_by_family, key=scores_by_family.get)
+        predictions.append(pred)
+
+    c = 0
+    for i in range(len(predictions)):
+        if predictions[i] == qry_labels[i]: c += 1
+
+    accuracy.append(c / len(predictions))
 
 
-vecs = torch.stack(vecs).to(torch.float32).numpy()   #.numpy() because FAISS-cpu wants a numpy array, not a torch tensor
-
-index = faiss.IndexFlatIP(2048)
-index.add(vecs)
-
-D, I = index.search(vecs[0:1], k=5)    #running a test to see if its working. (it is) A stack-of-one-row is still 2D; a row's contents is 1D. Hence [0:1] works but [0] doesnt
 
 
-x = sample_eps(emb_model, k= 5)
-print(x)
+print(mean(accuracy))
