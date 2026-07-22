@@ -17,7 +17,7 @@ for family_dir in dir.iterdir():
 import sys
 from PIL import Image, ImageOps
 
-TARGET_SIZE = (384, 384)
+TARGET_SIZE = (224, 224)
 
 def load_resized(path):
     img = Image.open(path).convert("RGB")   # grayscale -> 3-channel

@@ -35,15 +35,15 @@ def randimg(family, k=1):
 
 
 
-emb_model = torch.load('malimg_embeddings.pt')
+emb_model = torch.load('dino_malimg_embeddings.pt')
 
 
 
 accuracy = []
 for i in range(1000):
-    support_set, sup_labels, query_set, qry_labels = sample_eps(emb_model, k = 1)
+    support_set, sup_labels, query_set, qry_labels = sample_eps(emb_model, k = 3)
 
-    index = faiss.IndexFlatIP(2048)
+    index = faiss.IndexFlatIP(768)
     index.add(support_set.to(torch.float32).numpy())
 
     D, I = index.search(query_set.to(torch.float32).numpy(), k=10)    #A stack-of-one-row is still 2D; a row's contents is 1D. Hence [0:1] works but [0] doesnt. FAISS never sees labels
