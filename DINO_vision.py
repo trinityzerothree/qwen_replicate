@@ -2,8 +2,6 @@ import torch
 from dataloader import load_resized, data
 from tqdm import tqdm
 
-import requests
-#from torchao.quantization import Int4WeightOnlyConfig
 from transformers import AutoImageProcessor, AutoModel
 
 
@@ -28,24 +26,33 @@ def embed_image(path, model, processor):
         fwd_pass = model(**inputs)
 
     cls = fwd_pass.last_hidden_state[:, 0]  # grabbing CLS
+    no_cls = fwd_pass.last_hidden_state[:, 1:].mean(dim=1)
 
     
-    z = torch.nn.functional.normalize(cls, p=2, dim=1)                                                                                                                                                                                                                                                          
-    return z.detach().cpu().squeeze(0)
+    z1 = torch.nn.functional.normalize(cls, p=2, dim=1)
+    z2 = torch.nn.functional.normalize(no_cls, p=2, dim=1)                                                                                                                                                                                                                                                 
+    return z1.detach().cpu().squeeze(0), z2.detach().cpu().squeeze(0)
 
 
 ##########################################################################################
 
 
-embeddings = {}  
+embeddings_x, embeddings_y = {}, {}  
 
 for family, paths in tqdm(data.items(), desc="families"):    #list(data.items())[:x] for small sample testing
-    vecs = []
+    vecs_x, vecs_y = [], []
     for p in paths:
-        vecs.append(embed_image(p, model, processor))
-    embeddings[family] = torch.stack(vecs)  # [n_images, 2048]
+        x,y = embed_image(p, model, processor)
+        vecs_x.append(x)
+        vecs_y.append(y)
+    embeddings_x[family] = torch.stack(vecs_x)  # [n_images, 2048]
+    embeddings_y[family] = torch.stack(vecs_y)
 
-torch.save(embeddings, "dino_malimg_embeddings.pt")   # embeddings = {family: [n, 2048] matrix}
+torch.save(embeddings_x, "dino_cls_malimg_emb.pt")   # embeddings = {family: [n, 2048] matrix}
+torch.save(embeddings_y, "dino_noncls_malimg_emb.pt")
 
-for family, matrix in embeddings.items():
+for family, matrix in embeddings_x.items():
+    print(family, matrix.shape)
+
+for family, matrix in embeddings_y.items():
     print(family, matrix.shape)
