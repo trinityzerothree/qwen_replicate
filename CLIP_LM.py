@@ -32,11 +32,24 @@ def randimg(exemplar, family, k=1):
 
     return support, query
 
+def renormalize(exemplar):
+    # The cached embeddings are stored in bfloat16, which leaves vector norms
+    # jittering in [0.9964, 1.0036] instead of exactly 1. IndexFlatIP multiplies
+    # that jitter into the similarity scores, and neighbor similarities here are
+    # packed within ~1e-3 of each other, so raw inner product reorders neighbors
+    # (~ -10 pts at 1-shot on pooled, ~ -32 pts on lastpooled). Re-normalizing
+    # in float32 restores true cosine ranking.
+    return {fam: torch.nn.functional.normalize(mat.to(torch.float32), p=2, dim=1)
+            for fam, mat in exemplar.items()}
+
+
 
 
 
 emb = torch.load('clip_malimg_emb.pt')
 
+
+emb = renormalize(emb)
 
 for fs in [1,3,5,10]:
     accuracy = []
